@@ -1,6 +1,3 @@
-# What's New
+### What's Fixed
 
-- Added actions and sample playbooks:
-    - Quick Audit Log Search
-    - Advanced Audit Log Search
-- Added output schema for all the actions.
+- Fixed the issue where Advanced Audit Log Search action was not working.

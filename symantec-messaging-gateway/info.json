@@ -1,15 +1,15 @@
 {
   "name": "symantec-messaging-gateway",
   "label": "Symantec Messaging Gateway",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Symantec Messaging Gateway is an email security solution which provides inbound and outbound messaging security. Also it can perform containment and corrective actions like block Domain/Email/IP or unblock Domain/Email/IP",
   "publisher": "Fortinet",
-  "cs_approved": true,
+  "cs_approved": false,
   "cs_compatible": true,
   "category": "Email Gateway",
   "icon_small_name": "small.png",
   "icon_large_name": "large.png",
-  "help_online": "https://docs.fortinet.com/document/fortisoar/1.1.0/symantec-messaging-gateway/565/symantec-messaging-gateway-v1-1-0",
+  "help_online": "",
   "configuration": {
     "fields": [
       {

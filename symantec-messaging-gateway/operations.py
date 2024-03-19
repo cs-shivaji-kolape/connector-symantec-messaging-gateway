@@ -1,8 +1,9 @@
-"""Copyright start
-  Copyright (C) 2008 - 2023 Fortinet Inc.
-  All rights reserved.
-  FORTINET CONFIDENTIAL & FORTINET PROPRIETARY SOURCE CODE
-  Copyright end"""
+"""
+Copyright start
+MIT License
+Copyright (c) 2024 Fortinet Inc
+Copyright end
+"""
 
 import requests
 import arrow
@@ -85,8 +86,12 @@ def build_search_payload(params):
     ''' builds requests payload for the search actions '''
     filters = {
         'hostFilterId': '0',
-        'optionalFilterId': "none",
-        'optionalFilterValue': '',
+        'optionalFilterId1': 'none',
+        'optionalFilterValue1': '',
+        'optionalFilterId2': 'none',
+        'optionalFilterValue2': '',
+        'optionalFilterId3': 'none',
+        'optionalFilterValue3': '',
         'timeRange': 'timeRange.customize',
         'encodingSelected': 'UTF-8',
         'delimiterSelected': '0x003b',
@@ -131,7 +136,7 @@ class SMG:
             response = call_method(url, params=params, data=data, headers=headers, verify=self.verify_ssl)
             if method in ['post']:
                 logger.debug('\nreq data:\n{0}\n'.format(dump.dump_all(response).decode('utf-8')))
-            if response.ok:
+            if response.ok or response.status_code == 302:
                 logger.info('successfully get response for url {}'.format(url))
                 return response
             elif response.status_code == 401:
@@ -151,8 +156,7 @@ class SMG:
         except requests.exceptions.ConnectionError:
             raise ConnectorError('Invalid endpoint or credentials')
         except Exception as err:
-            raise ConnectorError(str(err))
-        raise ConnectorError(response.content)
+            raise ConnectorError(str(response.content))
 
     def _login(self, config):
         try:
@@ -305,12 +309,12 @@ class SMG:
             search_params.update({'symantec.brightmail.key.TOKEN': token})
             if params.get('entriesPerPage'):
                 endpoint = AUDIT_LOGS + '$changeEntriesPerPage.flo'
-                response = self._make_request(endpoint, 'post', data=search_params)
+                response = self._make_request(endpoint, 'post', params=search_params)
             endpoint = AUDIT_LOGS + '$search.flo'
             resp = self._make_request(endpoint, 'post', data=search_params)
             if params.get('pageNumber') and params.get('pageNumber') > 1:
                 endpoint = AUDIT_LOGS + '$gotoPage.flo'
-                resp = self._make_request(endpoint, 'post', data=search_params)
+                resp = self._make_request(endpoint, 'post', params=search_params)
             json_response = html_to_json(resp.text)
             logger.debug(json.dumps(json_response, indent=3))
             return html_to_json(resp.text)
@@ -325,9 +329,9 @@ class SMG:
             search_params = build_search_payload(params)
             token = self._login(config)
             search_params.update({'symantec.brightmail.key.TOKEN': token})
-            self._make_request(AUDIT_LOGS + '$search.flo', 'post', data=search_params)
+            self._make_request(AUDIT_LOGS + '$search.flo', 'post', params=search_params)
             time.sleep(1)
-            resp = self._make_request(AUDIT_LOGS_CSV, 'post', data=search_params)
+            resp = self._make_request(AUDIT_LOGS_CSV, 'post', params=search_params)
             events_json = csv_to_json(resp.text, ignore_none_ascii)
             logger.debug('Received events: {0}'.format(events_json))
             return events_json
