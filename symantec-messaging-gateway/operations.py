@@ -12,6 +12,8 @@ import json
 import time
 import csv
 import string
+import copy
+import math
 from io import StringIO
 from bs4 import BeautifulSoup
 from requests_toolbelt.utils import dump
@@ -22,7 +24,6 @@ SENDER_GRP = 'reputation/sender-group/'
 AUDIT_LOGS = 'status/message-audit/MessageAuditFlow'
 AUDIT_LOGS_CSV = 'status/message-audit/MessageAuditFlow$export.flo?no-cache=true'
 VIEW_SENDER_GRP = SENDER_GRP + 'viewSenderGroup.do'
-
 filter_map = {
     "Sender": "SENDER",
     "Recipient": "RCPTS",
@@ -44,6 +45,29 @@ def csv_to_json(csv_data, ignore_none_ascii):
         logger.debug('Adding row: {}'.format(row))
         json_array.append(row)
     return json.loads(json.dumps(json_array))
+
+
+def get_pagination_parameters(resp):
+    try:
+        soup = BeautifulSoup(resp.text, 'html.parser')
+        tab = soup.find("select", {"id": "pageNumber"})
+        range_text = tab.get_text(strip=True)
+        total_entries = 500
+        if '-' in range_text:
+            _, total_entries = range_text.split('-')
+        logger.debug("Total number of entries for bad senders: {}".format(total_entries))
+        entry_per_page_div = soup.find('select', {'id': 'entriesPerPage'})
+        # Find the <option> that is selected
+        entry_per_page_options = entry_per_page_div.find('option', selected=True)
+        # Get its value (or text)
+        entries_per_page = entry_per_page_options.get('value', 25)  # or selected_option.text.strip()
+        logger.debug("entries per page is: {}".format(entries_per_page))
+        # Calculate number of pages needed
+        num_of_pages = math.ceil(int(total_entries) / int(entries_per_page))
+        logger.debug("total number of pages: {}".format(num_of_pages))
+        return num_of_pages, entries_per_page
+    except Exception as err:
+        logger.error('pagination parsing failed: {}'.format(err))
 
 
 def html_to_json(content):
@@ -254,8 +278,16 @@ class SMG:
                 'view': 'badSenders',
                 'selectedSenderGroups': sender_group
             }
-            resp = self._make_request(VIEW_SENDER_GRP, params=params)
-            item_id = self._is_exists(input, resp)
+            num_of_pages, entries_per_page  = get_pagination_parameters(resp)
+            num_of_pages = num_of_pages if num_of_pages else 1
+            entries_per_page = entries_per_page if entries_per_page else 500
+            pagination_params = copy.deepcopy(params)
+            item_id = None
+            for page_no in range(num_of_pages):
+                pagination_params.update({'entriesPerPage': entries_per_page, 'pageNumber': page_no + 1})
+                logger.debug("pagination_params: {}".format(pagination_params))
+                resp = self._make_request(VIEW_SENDER_GRP, params=pagination_params)
+                item_id = self._is_exists(input, resp)
             if not item_id:
                 logger.error('Input not found in blacklist')
                 raise ConnectorError('Input not found in blacklist')
